@@ -4,10 +4,10 @@ import pandas as pd # read csv, df manipulation
 import time # to simulate a real time data, time loop 
 import plotly.express as px # interactive charts 
 import uuid
+import numpy
 from htbuilder import div, big, h2, styles
 from htbuilder.units import rem
-from ecg import*
-from QRS import*
+from util.QRS_util import*
 COLOR_RED = "#FF4B4B"
 COLOR_BLUE = "#1C83E1"
 COLOR_CYAN = "#00C0F2"
@@ -48,27 +48,30 @@ import re
 import time
 import plotly.graph_objects as go
 # try:
-ser = serial.Serial('COM6',9600)
+ser = serial.Serial('COM5',9600)
 lst=[]
-hzl=[]
 r=[]
 r_peaks=[]
 rpeakslst=[]
-filename = uuid.uuid1().hex
-filename="static\\"+filename+".dat"
+# filename = uuid.uuid1().hex
+# filename="static\\"+filename+".dat"
 def test():
 	t_tmpend = time.time() + 1/60 
 	while time.time() < t_tmpend:
 		b = str(ser.readline())
+		print(b)
 		tmp = ""
 		for m in b:
 			if m.isdigit():
 				tmp = tmp + m
-		lst.append(float(tmp))
-		rpeakslst.append(float(tmp))
+		if(tmp==''):
+			tmp=float(0)
+		else :
+			tmp=float(tmp)
+		lst.append(tmp)
+		rpeakslst.append(tmp)
 		print(len(rpeakslst))
 		lst.pop(0)
-	return lst
 def run():
 	t_tmpend = time.time() + 5 
 	while time.time() < t_tmpend:
@@ -77,36 +80,46 @@ def run():
 		for m in b:
 			if m.isdigit():
 				tmp = tmp + m
-		rpeakslst.append(float(tmp))
-		lst.append(float(tmp))
+		if(tmp==''):
+			tmp=float(0)
+		else :
+			tmp=float(tmp)
+		lst.append(tmp)
 	t_end = time.time() + 60 
 	while time.time() < t_end:
 	    with placeholder.container():
-	        tt=test()
-	        savefile(filename,lst)
-	        r_peaks,index=QRS_test(filename)
-	        dif=r_peaks[-1]-r_peaks[-2]
-	        dif=dif/(5*index)
-	        hz=1500/dif	
-	        hzl.append(hz)        
-	        polarity_color = COLOR_BLUE
-	        subjectivity_color = COLOR_RED
-	        line_color=COLOR_CYAN
-	        a, b= st.columns(2)
-	        with a:
-	        	display_dial("Heart rate in BPM", f"{hz}", polarity_color)
-	        with b:
-	        	display_dial(
-			        "Average Heart rate", f"{sum(hzl)/len(hzl)}", line_color
-			    )
-	        st.line_chart(tt)
+	        test()
+	        st.line_chart(lst)
 	        # st.write(fig2)
 run()
-filename = uuid.uuid1().hex
-filename="static\\"+filename+".dat"
-savefile(filename,rpeakslst)
-r,index=QRS_test(filename)
-display_dial(
-			        "Practical Heart Rate", f"{len(r)}", COLOR_RED
+# filename = uuid.uuid1().hex
+# filename="static\\"+filename+".dat"
+# savefile(filename,rpeakslst)
+r,index=EKG_QRS_detect(numpy.array(rpeakslst))
+hzl=[]
+for i in range(1,len(r)):
+	dif=r[i]-r[i-1]
+	dif=dif/(index)
+	hz=300/dif	
+	print(hz)
+	hzl.append(hz)
+print(hzl)  
+print(len(hzl))   
+a,b =st.columns(2) 
+with a:
+	display_dial(
+	    "Average Heart rate", f"{int(sum(hzl)/len(hzl))}", COLOR_CYAN
+	)
+with b :
+	display_dial(
+				        "Practical Heart Rate", f"{len(r)}", COLOR_RED
 			    )
-
+st.header("Analysis of Practical and Calculated Data")
+import matplotlib.pyplot as plt
+plt1=plt.figure(figsize=(3,2))
+plt.plot(hzl)
+r_peaks_data=[]
+for i in range(len(hzl)):
+	r_peaks_data.append(len(r))
+plt.plot(r_peaks_data)
+st.pyplot(plt)

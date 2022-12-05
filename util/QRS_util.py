@@ -2,11 +2,6 @@
 
 import numpy as np 
 import math
-from numpy import genfromtxt
-import matplotlib.pyplot as plt
-
-def read_ecg(file_name):
-	return genfromtxt(file_name, delimiter=',')
 
 def lgth_transform(ecg, ws):
 	lgth=ecg.shape[0]
@@ -60,39 +55,7 @@ def find_R_peaks(ecg, peaks, ws):
 			temp_ecg=ecg[i-2*ws:i]
 			R_peaks.append(int(np.argmax(temp_ecg)+i-2*ws))
 	return np.asarray(R_peaks)
-
-def find_S_point(ecg, R_peaks):
-	num_peak=R_peaks.shape[0]
-	S_point=list()
-	for index in range(num_peak):
-		i=R_peaks[index]
-		cnt=i
-		if cnt+1>=ecg.shape[0]:
-			break
-		while ecg[cnt]>ecg[cnt+1]:
-			cnt+=1
-			if cnt>=ecg.shape[0]:
-				break
-		S_point.append(cnt)
-	return np.asarray(S_point)
-
-
-def find_Q_point(ecg, R_peaks):
-	num_peak=R_peaks.shape[0]
-	Q_point=list()
-	for index in range(num_peak):
-		i=R_peaks[index]
-		cnt=i
-		if cnt-1<0:
-			break
-		while ecg[cnt]>ecg[cnt-1]:
-			cnt-=1
-			if cnt<0:
-				break
-		Q_point.append(cnt)
-	return np.asarray(Q_point)
-
-def EKG_QRS_detect(ecg, fs, QS, plot=False):
+def EKG_QRS_detect(ecg, fs=360):
 	sig_lgth=ecg.shape[0]
 	ecg=ecg-np.mean(ecg)
 	ecg_lgth_transform=lgth_transform(ecg, int(fs/20))
@@ -109,13 +72,5 @@ def EKG_QRS_detect(ecg, fs, QS, plot=False):
 
 	peaks=find_peak(ecg_integrate, int(fs/10))
 	R_peaks=find_R_peaks(ecg, peaks, int(fs/40))
-	if QS:
-		S_point=find_S_point(ecg, R_peaks)
-		Q_point=find_Q_point(ecg, R_peaks)
-	else:
-		S_point=None
-		Q_point=None
-	if plot:
-		index=np.arange(sig_lgth)/fs
-		# fig, ax=plt.subplots()
-	return R_peaks, S_point, Q_point,ecg,index
+	index=np.arange(sig_lgth)/fs
+	return R_peaks,index[-1]
